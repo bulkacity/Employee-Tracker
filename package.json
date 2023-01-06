@@ -1,16 +1,17 @@
 {
   "name": "main",
   "version": "1.0.0",
-  "main": "prompt.js",
+  "main": "tracker.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node prompt.js"
+    "start": "node tracker.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "console.table": "^0.10.0",
     "express": "^4.17.1",
     "inquirer": "^8.2.4",
     "jshint": "^2.12.0",

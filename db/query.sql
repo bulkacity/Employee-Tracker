@@ -1,5 +1,3 @@
-SELECT movies.movie_name AS movie, reviews.review
-FROM reviews
-LEFT JOIN movies
-ON reviews.movie_id = movies.id
-ORDER BY movies.movie_name;
+DROP DATABASE IF EXISTS employee_db;
+CREATE DATABASE employee_db;
+USE employee_db;
