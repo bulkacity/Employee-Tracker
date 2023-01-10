@@ -3,6 +3,7 @@ const inquirer = require('inquirer');
 const mysql = require('mysql2');
 const cTable = require('console.table');
 const { CallTracker } = require('assert');
+const chalk = require("chalk");
 
 require('dotenv').config()
 
@@ -13,7 +14,8 @@ const connection = mysql.createConnection(
         host: 'localhost',
         user: 'root',
         password: 'root',
-        database: 'tracker_db'
+        database: 'employeeTracker_db'
+
     });
 
 // connects to the mysql database
@@ -39,6 +41,7 @@ const InquirerPrompt = () => {
                 'Add employee',
                 'Update all departments',
                 'Update employee infomation',
+                'View department budgets',
                 'Exit'
             ]
         }
@@ -76,38 +79,88 @@ const InquirerPrompt = () => {
             }
 
             if (choices === "Update employee infomation") {
-                employeeInfomation();
+                updateEmployee();
             }
 
             if (choices === "Exit") {
                 connection.end();
             }
+            if (choices === "View department budgets") {
+                viewBudget();
+            }
         });
+};
+
+
+const newTransaction = () => {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'choices',
+            message: 'Would you like to make another transaction ?',
+            choices: [
+                'Yes',
+                'No, please Exit'
+            ]
+        }
+    ])
+    .then((answers) => {
+        const { choices } = answers;
+
+        if (choices === "Yes") {
+            InquirerPrompt();
+        }
+        if (choices === "No, please Exit") {
+            connection.end();
+            console.log(' ');
+            console.log(chalk.red.bold(`Thank you for your time, have a nice day !`));
+        }
+
+    });
 };
 
 // Departments infomation
 showDepartments = () => {
-    console.log('All departments are showing.');
-    const mysql = `SELECT department.id AS id, department.name AS department FROM department`;
-
-    connection.query(mysql, (err, rows) => {
-        if (err) return console.log(err);
-        console.table(rows);
-        InquirerPrompt();
-    });
-}
+    connection.query(`SELECT dept_id AS Department_ID, departments.name AS Department_Name FROM departments`, (err, res) => {
+        if (err) throw err;
+        console.log(' ');
+              console.log(`                              ` + chalk.red.bold(`All Departments:`));
+        console.table(res);
+        newTransaction ();
+    })
+};
 
 //show roles
 showRoles = () => {
-    console.log('Show all roles.');
-
-    const mysql = `SELECT roles.id, roles.title, department.name AS department FROM roles LEFT JOIN department ON roles.department_id = department.id`;
-
-    connection.query(mysql, (err, rows) => {
-        console.table(rows);
-        InquirerPrompt();
-    })
+    const query = `SELECT roles.role_id AS Role_ID, roles.title AS Title, CONCAT('$', FORMAT (salary, 0)) AS Salary, departments.name AS Department 
+    FROM roles 
+    INNER JOIN departments ON roles.dept_id = departments.dept_id 
+    ORDER BY roles.role_id ASC`
+    connection.query(query, (err, res) => {
+      if (err) throw err;
+      console.log(' ');
+      console.log(`                              ` + chalk.red.bold(`All Roles:`));
+      console.table(res);
+      console.log(' ');
+      newTransaction ();
+    });
 };
+
+//show employees
+showEmployees = () => {
+    const query = `SELECT emp_id AS Employee_ID, first_name AS First_Name, last_name AS Last_Name, title AS Title, CONCAT('$', FORMAT (salary, 0)) AS Salary, departments.name AS Department 
+          FROM employees 
+          INNER JOIN roles ON employees.role_Id = roles.role_id 
+          INNER JOIN departments ON roles.dept_id = departments.dept_id 
+          ORDER BY last_name ASC`
+        connection.query(query, (err, res) => {
+          if (err) throw err;
+          console.log(' ');
+          console.log(`                              ` + chalk.red.bold(`All Employees:`));
+          console.table(res);
+          newTransaction ();
+        });
+    };
 
 //add roles infomation
 addRoles = () => {
@@ -156,17 +209,7 @@ addRoles = () => {
         });
 };
 
-//show employees
-showEmployees = () => {
-    console.log('All employees are showing.');
-    const mysql = `SELECT employee.id, employee.first_name, employee.last_name, roles.title, department.name AS department, roles.salary, CONCAT(mgr.first_name, mgr.last_name) AS manager FROM employee LEFT JOIN roles ON employee.role_id = roles.id LEFT JOIN department ON roles.department_id = department.id LEFT JOIN employee mgr ON employee.manager_id = mgr.id`;
 
-    connection.query(mysql, (err, rows) => {
-        if (err) return console.log(err);
-        console.table(rows);
-        InquirerPrompt();
-    });
-};
 
 //update employees
 updateEmployee = () => {
@@ -223,6 +266,25 @@ updateEmployee = () => {
     })
 };
 
+
+// View the budget
+viewBudget = () => {
+    const query = `SELECT department.id AS Dept_ID, department.name AS Department_Name, CONCAT('$', FORMAT(SUM(salary),0)) AS Budget 
+    FROM roles 
+    INNER JOIN employees USING (role_id)
+    INNER JOIN departments ON roles.dept_id = department.dept_id 
+    GROUP BY roles.dept_id;`;
+    connection.query(query, (err, res) => {
+      if (err) throw err;
+      console.log(` `);
+      
+      console.table(res);
+
+      console.log(` `);
+      newTransaction();
+    })
+  }
+
 //Update/ADD Department
 addDepartments = () => {
     inquirer.prompt([
@@ -233,12 +295,13 @@ addDepartments = () => {
         }
     ])
         .then(answer => {
-            const mysql = `INSERT INTO department (name) VALUES (?)`;
+            const mysql = `INSERT INTO departments (name) VALUES (?)`;
             connection.query(mysql, answer.department, (err, results) => {
                 if (err) return console.log(err);
                 console.log('Added' + answer.department + "to departments");
 
                 showDepartments();
+                newTransaction();
             });
         });
 }
@@ -258,7 +321,7 @@ addEmployees = ()  => {
     ])
     .then(answer => {
         const parameters = [answer.first_name, answer.last_name]
-        const roles_var = `SELECT roles.id, roles.title FROM roles`;
+        const roles_var = `SELECT roles.role_id, roles.title FROM roles`;
 
         connection.query(roles_var, (err, data) => {
             if(err) return console.log(err);
