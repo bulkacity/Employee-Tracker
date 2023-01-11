@@ -61,7 +61,9 @@ THEN I am prompted to select an employee to update and their new role and this i
 ```
 
 ## Visuals:
-![Example](./assets/12-sql-homework-demo-01.png)
+![Example](./Assets/12-sql-homework-demo-01.png)
+![Example](./Assets/12-sql-homework-video-thumbnail.png)
+
 ---
 ## Installation:
   Run npm install, and ensure to change the parameters for the package "inquirer": "^8.2.4".
